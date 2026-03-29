@@ -3,73 +3,387 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload - Private Financial AI</title>
+    <title>Import Data — Private Financial AI</title>
     <style>
+        :root {
+            --bg-primary: #FAF9F7;
+            --bg-secondary: #FFFFFF;
+            --accent: #D97757;
+            --accent-light: #E8A088;
+            --text-primary: #1a1a1a;
+            --text-secondary: #666;
+            --border: #e0e0e0;
+            --success: #2e7d32;
+            --success-bg: #e8f5e9;
+            --error: #c62828;
+            --error-bg: #ffebee;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #FAF9F7;
-            padding: 2rem;
-            max-width: 800px;
-            margin: 0 auto;
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
-        h1 { color: #D97757; }
-        .upload-area {
-            border: 2px dashed #ddd;
-            border-radius: 12px;
-            padding: 3rem;
-            text-align: center;
-            background: white;
-            margin: 2rem 0;
+
+        header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
         }
-        .upload-area:hover { border-color: #D97757; }
-        input[type="file"] { margin: 1rem 0; }
-        .btn {
-            background: #D97757;
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
+
+        .back-btn {
+            background: none;
+            border: 1px solid var(--border);
+            padding: 0.5rem 1rem;
             border-radius: 8px;
             cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
         }
-        a { color: #D97757; }
+        .back-btn:hover { background: var(--bg-primary); color: var(--text-primary); }
+
+        .logo { font-size: 1.5rem; font-weight: 600; color: var(--accent); }
+
+        header h1 {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .page {
+            flex: 1;
+            max-width: 760px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+            width: 100%;
+        }
+
+        .section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .section-header h2 { font-size: 1rem; font-weight: 600; }
+        .section-header p { font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.2rem; }
+
+        .section-body { padding: 1.5rem; }
+
+        /* Drop zone */
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 2.5rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.15s, background 0.15s;
+        }
+
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--accent);
+            background: #fdf5f2;
+        }
+
+        .drop-zone .icon { font-size: 2rem; display: block; margin-bottom: 0.75rem; }
+        .drop-zone p { color: var(--text-secondary); font-size: 0.95rem; }
+        .drop-zone strong { color: var(--accent); }
+
+        #fileInput { display: none; }
+
+        /* File list */
+        .file-list { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+
+        .file-item .file-name { font-weight: 500; }
+        .file-item .file-size { color: var(--text-secondary); font-size: 0.8rem; }
+        .file-remove {
+            background: none; border: none; cursor: pointer;
+            color: var(--text-secondary); font-size: 1rem;
+            padding: 0.2rem 0.4rem; border-radius: 4px;
+        }
+        .file-remove:hover { color: var(--error); }
+
+        /* Buttons */
+        .btn {
+            padding: 0.7rem 1.4rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            font-family: inherit;
+        }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:not(:disabled):hover { background: var(--accent-light); }
+
+        .btn-row { margin-top: 1.25rem; display: flex; gap: 0.75rem; align-items: center; }
+
+        /* Results */
+        .result-list { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem; }
+
+        .result-item {
+            padding: 1rem 1.25rem;
+            border-radius: 10px;
+            border: 1px solid;
+            font-size: 0.9rem;
+        }
+
+        .result-item.success {
+            background: var(--success-bg);
+            border-color: #a5d6a7;
+            color: var(--success);
+        }
+
+        .result-item.error {
+            background: var(--error-bg);
+            border-color: #ef9a9a;
+            color: var(--error);
+        }
+
+        .result-item strong { display: block; margin-bottom: 0.3rem; font-size: 0.95rem; }
+        .result-meta { font-size: 0.82rem; opacity: 0.85; margin-top: 0.2rem; }
+
+        /* Instructions */
+        .instructions { display: flex; flex-direction: column; gap: 1rem; }
+
+        .inst-block {
+            padding: 1rem 1.25rem;
+            background: var(--bg-primary);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .inst-block h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .inst-block ol, .inst-block ul { margin-left: 1.2rem; font-size: 0.875rem; color: var(--text-secondary); }
+        .inst-block li { margin: 0.3rem 0; }
+        .inst-block code {
+            background: rgba(0,0,0,0.06);
+            padding: 0.1em 0.35em;
+            border-radius: 4px;
+            font-size: 0.85em;
+        }
+
+        .supported-tag {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 99px;
+            background: var(--success-bg);
+            color: var(--success);
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-left: 0.5rem;
+        }
     </style>
 </head>
 <body>
-    <h1>Upload Financial Data</h1>
-    <p><a href="/">← Back to Chat</a></p>
 
-    <div class="upload-area">
-        <h2>Drop files here or click to upload</h2>
-        <p>Supported formats: CSV (transactions, portfolio), PDF (tax documents)</p>
-        <input type="file" id="fileInput" accept=".csv,.pdf" multiple>
-        <br><br>
-        <button class="btn" onclick="uploadFiles()">Upload</button>
+<header>
+    <a href="/" class="back-btn">&#8592; Chat</a>
+    <div class="logo">Private Financial AI</div>
+    <h1>Import Data</h1>
+</header>
+
+<div class="page">
+
+    <!-- Upload -->
+    <div class="section">
+        <div class="section-header">
+            <h2>Upload CSV Files</h2>
+            <p>Import transaction history or positions from Fidelity or any standard CSV export.</p>
+        </div>
+        <div class="section-body">
+
+            <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                <span class="icon">&#8679;</span>
+                <p><strong>Click to choose files</strong> or drag and drop here</p>
+                <p style="margin-top:0.4rem; font-size:0.82rem;">CSV files only</p>
+            </div>
+            <input type="file" id="fileInput" accept=".csv" multiple>
+
+            <div class="file-list" id="fileList"></div>
+
+            <div class="btn-row">
+                <button class="btn btn-primary" id="importBtn" onclick="importFiles()" disabled>
+                    Import
+                </button>
+                <span id="importStatus" style="font-size:0.875rem; color:var(--text-secondary);"></span>
+            </div>
+
+            <div class="result-list" id="results"></div>
+
+        </div>
     </div>
 
-    <div id="results"></div>
+    <!-- How to export -->
+    <div class="section">
+        <div class="section-header">
+            <h2>How to Export from Your Brokerage</h2>
+        </div>
+        <div class="section-body">
+            <div class="instructions">
 
-    <script>
-        async function uploadFiles() {
-            const files = document.getElementById('fileInput').files;
-            if (!files.length) return alert('Please select files');
+                <div class="inst-block">
+                    <h3>Fidelity <span class="supported-tag">&#10003; Auto-detected</span></h3>
+                    <ol>
+                        <li>Log in to <strong>Fidelity.com</strong></li>
+                        <li><strong>Transaction history:</strong> Accounts &rarr; Activity &amp; Orders &rarr; select date range &rarr; <em>Download</em> (CSV)</li>
+                        <li><strong>Positions:</strong> Accounts &rarr; Portfolio &rarr; <em>Download</em> (CSV)</li>
+                        <li>Upload both files here — they'll be detected automatically</li>
+                    </ol>
+                </div>
 
-            const formData = new FormData();
-            for (let file of files) {
-                formData.append('files', file);
-            }
+                <div class="inst-block">
+                    <h3>Other Brokerages / Banks <span class="supported-tag">&#10003; Generic CSV</span></h3>
+                    <ol>
+                        <li>Export transactions as CSV from your brokerage or bank</li>
+                        <li>The file needs at minimum a <code>Date</code> and <code>Amount</code> column</li>
+                        <li>Optional: <code>Description</code>, <code>Category</code> columns are also used if present</li>
+                    </ol>
+                </div>
 
-            try {
-                const response = await fetch('/api/upload-smart', {
-                    method: 'POST',
-                    body: formData
-                });
-                const result = await response.json();
-                document.getElementById('results').innerHTML =
-                    '<pre>' + JSON.stringify(result, null, 2) + '</pre>';
-            } catch (error) {
-                alert('Upload failed: ' + error.message);
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    let selectedFiles = [];
+
+    // Drag and drop
+    const dropZone = document.getElementById('dropZone');
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        addFiles([...e.dataTransfer.files]);
+    });
+
+    document.getElementById('fileInput').addEventListener('change', e => {
+        addFiles([...e.target.files]);
+        e.target.value = '';
+    });
+
+    function addFiles(files) {
+        for (const f of files) {
+            if (f.name.toLowerCase().endsWith('.csv') && !selectedFiles.find(x => x.name === f.name)) {
+                selectedFiles.push(f);
             }
         }
-    </script>
+        renderFileList();
+    }
+
+    function removeFile(name) {
+        selectedFiles = selectedFiles.filter(f => f.name !== name);
+        renderFileList();
+    }
+
+    function renderFileList() {
+        const list = document.getElementById('fileList');
+        list.innerHTML = selectedFiles.map(f => `
+            <div class="file-item">
+                <div>
+                    <div class="file-name">${escapeHtml(f.name)}</div>
+                    <div class="file-size">${(f.size / 1024).toFixed(1)} KB</div>
+                </div>
+                <button class="file-remove" onclick="removeFile('${escapeHtml(f.name)}')" title="Remove">&#10005;</button>
+            </div>
+        `).join('');
+        document.getElementById('importBtn').disabled = selectedFiles.length === 0;
+    }
+
+    async function importFiles() {
+        if (selectedFiles.length === 0) return;
+
+        const btn = document.getElementById('importBtn');
+        const status = document.getElementById('importStatus');
+        const results = document.getElementById('results');
+
+        btn.disabled = true;
+        btn.textContent = 'Importing…';
+        status.textContent = '';
+        results.innerHTML = '';
+
+        for (const file of selectedFiles) {
+            status.textContent = `Importing ${file.name}…`;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const res = await fetch('/api/upload/csv', { method: 'POST', body: formData });
+                const data = await res.json();
+
+                const div = document.createElement('div');
+                div.className = `result-item ${data.success ? 'success' : 'error'}`;
+
+                if (data.success) {
+                    const type = data.type === 'positions' ? 'holdings' : 'transactions';
+                    div.innerHTML = `
+                        <strong>&#10003; ${escapeHtml(file.name)}</strong>
+                        ${data.rows_imported} ${type} imported from ${escapeHtml(data.source || file.name)}
+                        ${data.skipped ? `<div class="result-meta">${data.skipped} rows skipped (duplicates or incomplete)</div>` : ''}
+                        ${data.errors ? `<div class="result-meta">Warnings: ${data.errors.slice(0,3).join('; ')}</div>` : ''}
+                    `;
+                } else {
+                    div.innerHTML = `<strong>&#10007; ${escapeHtml(file.name)}</strong>${data.error || 'Import failed'}`;
+                }
+
+                results.appendChild(div);
+
+            } catch (e) {
+                const div = document.createElement('div');
+                div.className = 'result-item error';
+                div.innerHTML = `<strong>&#10007; ${escapeHtml(file.name)}</strong>Network error — please try again.`;
+                results.appendChild(div);
+            }
+        }
+
+        status.textContent = 'Done.';
+        btn.disabled = false;
+        btn.textContent = 'Import';
+        selectedFiles = [];
+        renderFileList();
+    }
+
+    function escapeHtml(text) {
+        const d = document.createElement('div');
+        d.textContent = String(text);
+        return d.innerHTML;
+    }
+</script>
 </body>
 </html>

@@ -37,6 +37,7 @@ from mcp_server.tools import (
     BudgetTools, BUDGET_TOOLS,
     VaultTools, VAULT_TOOLS,
 )
+from mcp_server.tools.csv_importer import CSVImporter
 
 # =============================================================================
 # CONFIGURATION
@@ -76,6 +77,7 @@ crypto_tools = CryptoTools(DB_PATH, SECRETS_DIR)
 memory_tools = MemoryTools(DB_PATH)
 budget_tools = BudgetTools(DB_PATH)
 vault_tools = VaultTools(DB_PATH, os.path.join(VAULT_DIR, 'documents'))
+csv_importer = CSVImporter(DB_PATH)
 
 # Collect all tools
 ALL_TOOLS = (
@@ -748,6 +750,31 @@ def index():
 def upload():
     """File upload page."""
     return render_template('upload.html')
+
+
+@app.route('/api/upload/csv', methods=['POST'])
+def upload_csv():
+    """Import a CSV file (Fidelity export or generic transactions)."""
+    if 'file' not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+
+    file = request.files['file']
+    if not file.filename:
+        return jsonify({"error": "No file selected"}), 400
+    if not file.filename.lower().endswith('.csv'):
+        return jsonify({"error": "Only CSV files are supported"}), 400
+
+    try:
+        content = file.read().decode('utf-8-sig')  # utf-8-sig strips BOM if present
+    except UnicodeDecodeError:
+        try:
+            file.seek(0)
+            content = file.read().decode('latin-1')
+        except Exception:
+            return jsonify({"error": "Could not decode file. Please save as UTF-8."}), 400
+
+    result = csv_importer.import_file(file.filename, content)
+    return jsonify(result)
 
 
 @app.route('/budgets')

@@ -423,7 +423,10 @@
             <div class="conversation-list" id="conversationList">
                 <!-- Conversations loaded dynamically -->
             </div>
-            <div style="margin-top:auto; padding-top:1rem; border-top:1px solid var(--border)">
+            <div style="margin-top:auto; padding-top:1rem; border-top:1px solid var(--border); display:flex; flex-direction:column; gap:0.15rem;">
+                <a href="/upload" style="display:flex; align-items:center; gap:0.5rem; padding:0.6rem 0.75rem; border-radius:8px; color:var(--text-secondary); text-decoration:none; font-size:0.9rem;" onmouseover="this.style.background='var(--bg-primary)'" onmouseout="this.style.background='none'">
+                    &#8679; Import Data
+                </a>
                 <a href="/settings" style="display:flex; align-items:center; gap:0.5rem; padding:0.6rem 0.75rem; border-radius:8px; color:var(--text-secondary); text-decoration:none; font-size:0.9rem;" onmouseover="this.style.background='var(--bg-primary)'" onmouseout="this.style.background='none'">
                     &#9881; Settings &amp; Bank Connections
                 </a>
