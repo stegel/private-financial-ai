@@ -8,7 +8,21 @@ config/*.conf
 !config/*.example
 !config/providers/*.example
 
-# User's secrets directory
+# Env files anywhere in the tree
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Private key / certificate files
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+
+# User's secrets directory (if stored inside repo)
 secrets/
 
 # =============================================================================
@@ -28,6 +42,7 @@ vault/
 # PYTHON
 # =============================================================================
 venv/
+.venv/
 __pycache__/
 *.py[cod]
 *$py.class
@@ -48,6 +63,19 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+pip-log.txt
+pip-delete-this-directory.txt
+.python-version
+.pytest_cache/
+.coverage
+htmlcov/
+
+# =============================================================================
+# NODE (if JS tooling is ever added)
+# =============================================================================
+node_modules/
+npm-debug.log*
+yarn-error.log*
 
 # =============================================================================
 # IDE / EDITOR
@@ -58,6 +86,8 @@ wheels/
 *.swo
 *~
 .DS_Store
+Thumbs.db
+*.orig
 
 # =============================================================================
 # LOGS
@@ -68,7 +98,5 @@ logs/
 # =============================================================================
 # MISC
 # =============================================================================
-.env
-.env.local
 *.bak
 backups/

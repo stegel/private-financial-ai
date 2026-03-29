@@ -103,10 +103,14 @@
         }
 
         .conversation-item {
-            padding: 0.75rem;
+            padding: 0.6rem 0.75rem;
             border-radius: 8px;
             cursor: pointer;
             margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.4rem;
         }
 
         .conversation-item:hover {
@@ -116,6 +120,44 @@
         .conversation-item.active {
             background: var(--bg-primary);
             border-left: 3px solid var(--accent);
+        }
+
+        .conversation-title {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 0.9rem;
+        }
+
+        .conv-btn {
+            flex-shrink: 0;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            padding: 0.1rem 0.25rem;
+            border-radius: 4px;
+            opacity: 0;
+            transition: opacity 0.1s;
+        }
+
+        .conv-btn:hover { color: var(--text-primary); }
+        .conv-btn.delete:hover { color: #c62828; }
+        .conversation-item:hover .conv-btn { opacity: 1; }
+
+        .conv-actions { display: flex; gap: 0.1rem; }
+
+        .rename-input {
+            flex: 1;
+            border: 1px solid var(--accent);
+            border-radius: 4px;
+            padding: 0.15rem 0.4rem;
+            font-size: 0.9rem;
+            font-family: inherit;
+            outline: none;
+            min-width: 0;
         }
 
         /* Widgets */
@@ -281,7 +323,87 @@
             .widgets { flex-wrap: wrap; }
             .message-bubble { max-width: 85%; }
         }
+        /* Markdown rendering */
+        .message-bubble h1, .message-bubble h2, .message-bubble h3 {
+            margin: 0.75rem 0 0.4rem;
+            font-weight: 600;
+            line-height: 1.3;
+        }
+        .message-bubble h1 { font-size: 1.2rem; }
+        .message-bubble h2 { font-size: 1.05rem; }
+        .message-bubble h3 { font-size: 0.95rem; }
+
+        .message-bubble p { margin: 0.4rem 0; }
+        .message-bubble p:first-child { margin-top: 0; }
+        .message-bubble p:last-child { margin-bottom: 0; }
+
+        .message-bubble ul, .message-bubble ol {
+            margin: 0.4rem 0 0.4rem 1.4rem;
+            padding: 0;
+        }
+        .message-bubble li { margin: 0.2rem 0; }
+
+        .message-bubble code {
+            background: rgba(0,0,0,0.07);
+            padding: 0.1em 0.35em;
+            border-radius: 4px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.875em;
+        }
+
+        .message.user .message-bubble code {
+            background: rgba(255,255,255,0.25);
+        }
+
+        .message-bubble pre {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border-radius: 8px;
+            padding: 0.85rem 1rem;
+            overflow-x: auto;
+            margin: 0.6rem 0;
+        }
+
+        .message-bubble pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+            font-size: 0.85em;
+        }
+
+        .message-bubble table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 0.6rem 0;
+            font-size: 0.9em;
+        }
+        .message-bubble th, .message-bubble td {
+            border: 1px solid var(--border);
+            padding: 0.4rem 0.75rem;
+            text-align: left;
+        }
+        .message-bubble th {
+            background: var(--bg-primary);
+            font-weight: 600;
+        }
+
+        .message-bubble blockquote {
+            border-left: 3px solid var(--accent);
+            margin: 0.5rem 0;
+            padding: 0.25rem 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .message-bubble hr {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 0.75rem 0;
+        }
+
+        .message-bubble a { color: var(--accent); }
+        .message.user .message-bubble a { color: rgba(255,255,255,0.85); }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
 </head>
 <body>
     <header>
@@ -301,6 +423,11 @@
             <div class="conversation-list" id="conversationList">
                 <!-- Conversations loaded dynamically -->
             </div>
+            <div style="margin-top:auto; padding-top:1rem; border-top:1px solid var(--border)">
+                <a href="/settings" style="display:flex; align-items:center; gap:0.5rem; padding:0.6rem 0.75rem; border-radius:8px; color:var(--text-secondary); text-decoration:none; font-size:0.9rem;" onmouseover="this.style.background='var(--bg-primary)'" onmouseout="this.style.background='none'">
+                    &#9881; Settings &amp; Bank Connections
+                </a>
+            </div>
         </aside>
 
         <main class="chat-area">
@@ -310,7 +437,7 @@
                     <div class="widget-value" id="portfolioValue">--</div>
                 </div>
                 <div class="widget">
-                    <div class="widget-label">Cash</div>
+                    <div class="widget-label">Bank</div>
                     <div class="widget-value" id="cashValue">--</div>
                 </div>
                 <div class="widget">
@@ -388,13 +515,84 @@
                 const list = document.getElementById('conversationList');
                 list.innerHTML = data.conversations.map(conv => `
                     <div class="conversation-item ${conv.conversation_id === currentConversationId ? 'active' : ''}"
-                         onclick="loadConversation('${conv.conversation_id}')">
-                        ${conv.title || 'Untitled'}
+                         onclick="loadConversation('${conv.conversation_id}')"
+                         data-id="${conv.conversation_id}"
+                         data-title="${escapeHtml(conv.title || '')}">
+                        <span class="conversation-title">${escapeHtml(conv.title || 'Untitled')}</span>
+                        <div class="conv-actions">
+                            <button class="conv-btn" title="Rename" onclick="startRename(event)">&#9998;</button>
+                            <button class="conv-btn delete" title="Delete" onclick="deleteConversation(event)">&#10005;</button>
+                        </div>
                     </div>
                 `).join('');
             } catch (error) {
                 console.error('Error loading conversations:', error);
             }
+        }
+
+        function startRename(e) {
+            e.stopPropagation();
+            const item = e.target.closest('.conversation-item');
+            const conversationId = item.dataset.id;
+            const currentTitle = item.dataset.title;
+            const titleSpan = item.querySelector('.conversation-title');
+            const renameBtn = item.querySelector('.conv-actions');
+
+            const input = document.createElement('input');
+            input.className = 'rename-input';
+            input.value = currentTitle;
+            titleSpan.replaceWith(input);
+            renameBtn.style.display = 'none';
+            input.focus();
+            input.select();
+
+            async function commit() {
+                const newTitle = input.value.trim();
+                if (newTitle && newTitle !== currentTitle) {
+                    await fetch(`/api/conversations/${conversationId}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ title: newTitle })
+                    });
+                }
+                loadConversations();
+            }
+
+            input.addEventListener('keydown', e => {
+                if (e.key === 'Enter') commit();
+                if (e.key === 'Escape') loadConversations();
+            });
+            input.addEventListener('blur', commit);
+        }
+
+        async function deleteConversation(e) {
+            e.stopPropagation();
+            const item = e.target.closest('.conversation-item');
+            const conversationId = item.dataset.id;
+            const title = item.dataset.title || 'this conversation';
+
+            if (!confirm(`Delete "${title}"?`)) return;
+
+            await fetch(`/api/conversations/${conversationId}`, { method: 'DELETE' });
+
+            if (currentConversationId === conversationId) {
+                currentConversationId = null;
+                document.getElementById('messages').innerHTML = `
+                    <div class="message assistant">
+                        <div class="message-bubble">Hello! I'm your personal financial assistant. How can I help you today?</div>
+                    </div>`;
+            }
+
+            loadConversations();
+        }
+
+        async function autoTitleConversation(conversationId, message) {
+            const title = message.length > 60 ? message.slice(0, 57) + '…' : message;
+            await fetch(`/api/conversations/${conversationId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title })
+            });
         }
 
         // Load usage stats
@@ -442,7 +640,7 @@
                 const messagesDiv = document.getElementById('messages');
                 messagesDiv.innerHTML = data.messages.map(msg => `
                     <div class="message ${msg.role}">
-                        <div class="message-bubble">${escapeHtml(msg.content)}</div>
+                        <div class="message-bubble">${formatMessage(msg.content)}</div>
                     </div>
                 `).join('');
 
@@ -469,7 +667,8 @@
 
             try {
                 // Create conversation if needed
-                if (!currentConversationId) {
+                const isNewConversation = !currentConversationId;
+                if (isNewConversation) {
                     const convResponse = await fetch('/api/conversations', { method: 'POST' });
                     const convData = await convResponse.json();
                     currentConversationId = convData.conversation_id;
@@ -495,6 +694,11 @@
                     // Save messages
                     await saveMessage('user', message);
                     await saveMessage('assistant', data.response, data.model, data.cost);
+
+                    // Auto-title on first message
+                    if (isNewConversation) {
+                        await autoTitleConversation(currentConversationId, message);
+                    }
                 }
 
                 loadConversations();
@@ -528,13 +732,10 @@
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
 
-        // Format message (basic markdown)
+        // Format message using marked for full markdown support
+        marked.setOptions({ breaks: true, gfm: true });
         function formatMessage(text) {
-            return escapeHtml(text)
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                .replace(/`(.*?)`/g, '<code>$1</code>')
-                .replace(/\n/g, '<br>');
+            return marked.parse(text);
         }
 
         // Escape HTML

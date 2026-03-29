@@ -264,7 +264,7 @@ def chat():
                 tool_results.append(provider.format_tool_result(tc['id'], result))
 
             # Continue conversation with tool results
-            messages.append({"role": "assistant", "content": response.content, "tool_calls": response.tool_calls})
+            messages.append(provider.format_assistant_message(response))
             messages.extend(tool_results)
 
             response = provider.chat(messages, tools=tools, system=system, model=model)
@@ -365,7 +365,8 @@ def get_widget_summary():
         # Bank balances
         try:
             bank = plaid_tools.get_bank_balances()
-            checking = bank.get('summary', {}).get('checking', 0)
+            summary = bank.get('summary', {})
+            checking = summary.get('checking', 0) + summary.get('savings', 0)
         except Exception:
             checking = 0
 
@@ -510,6 +511,37 @@ def get_conversation(conversation_id):
     return jsonify(conversation)
 
 
+@app.route('/api/conversations/<conversation_id>', methods=['DELETE'])
+def delete_conversation(conversation_id):
+    """Delete a conversation and its messages."""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM conversation_messages WHERE conversation_id = ?", (conversation_id,))
+    cursor.execute("DELETE FROM conversations WHERE conversation_id = ?", (conversation_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True})
+
+
+@app.route('/api/conversations/<conversation_id>', methods=['PATCH'])
+def update_conversation(conversation_id):
+    """Update conversation title."""
+    data = request.json
+    title = (data.get('title') or '').strip()[:120]
+    if not title:
+        return jsonify({"error": "title required"}), 400
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE conversations SET title = ?, updated_at = ? WHERE conversation_id = ?",
+        (title, datetime.now().isoformat(), conversation_id)
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True})
+
+
 @app.route('/api/conversations/<conversation_id>/messages', methods=['POST'])
 def save_message(conversation_id):
     """Save a message to conversation."""
@@ -559,6 +591,98 @@ def sync_plaid():
 def plaid_status():
     """Get Plaid integration status."""
     return jsonify(plaid_tools.get_plaid_status())
+
+
+@app.route('/api/plaid/create-link-token', methods=['POST'])
+def create_link_token():
+    """Create a Plaid Link token for the frontend."""
+    result = plaid_tools.create_link_token()
+    if 'error' in result:
+        return jsonify(result), 400
+    return jsonify(result)
+
+
+@app.route('/api/plaid/exchange-token', methods=['POST'])
+def exchange_plaid_token():
+    """Exchange a Plaid public token for an access token."""
+    data = request.json
+    public_token = data.get('public_token')
+    metadata = data.get('metadata', {})
+
+    if not public_token:
+        return jsonify({"error": "public_token required"}), 400
+
+    result = plaid_tools.exchange_public_token(public_token, metadata)
+    if not result.get('success'):
+        return jsonify(result), 400
+    return jsonify(result)
+
+
+@app.route('/api/plaid/items/<item_id>', methods=['DELETE'])
+def remove_plaid_item(item_id):
+    """Remove a Plaid bank connection."""
+    result = plaid_tools.remove_item(item_id)
+    if not result.get('success'):
+        return jsonify(result), 400
+    return jsonify(result)
+
+
+@app.route('/api/settings/plaid-credentials', methods=['GET'])
+def get_plaid_credentials():
+    """Return Plaid credential status (never the secrets themselves)."""
+    config_path = os.path.join(SECRETS_DIR, 'plaid.conf')
+    if not os.path.exists(config_path):
+        return jsonify({"configured": False, "env": "sandbox"})
+
+    config = {}
+    try:
+        with open(config_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if '=' in line and not line.startswith('#'):
+                    key, value = line.split('=', 1)
+                    config[key.strip()] = value.strip()
+    except Exception:
+        return jsonify({"configured": False, "env": "sandbox"})
+
+    client_id = config.get('PLAID_CLIENT_ID', '')
+    env = config.get('PLAID_ENV', 'sandbox')
+    return jsonify({
+        "configured": bool(client_id),
+        "client_ready": plaid_tools.is_available(),
+        "client_id_hint": (client_id[:4] + '...' + client_id[-4:]) if len(client_id) > 8 else client_id,
+        "env": env
+    })
+
+
+@app.route('/api/settings/plaid-credentials', methods=['POST'])
+def save_plaid_credentials():
+    """Save Plaid credentials to secrets file."""
+    data = request.json
+    client_id = (data.get('client_id') or '').strip()
+    secret = (data.get('secret') or '').strip()
+    env = (data.get('env') or 'sandbox').strip()
+
+    if not client_id or not secret:
+        return jsonify({"error": "client_id and secret are required"}), 400
+
+    if env not in ('sandbox', 'development', 'production'):
+        return jsonify({"error": "env must be sandbox, development, or production"}), 400
+
+    config_path = os.path.join(SECRETS_DIR, 'plaid.conf')
+    try:
+        with open(config_path, 'w') as f:
+            f.write(f"PLAID_CLIENT_ID={client_id}\n")
+            f.write(f"PLAID_SECRET={secret}\n")
+            f.write(f"PLAID_ENV={env}\n")
+        os.chmod(config_path, 0o600)
+    except Exception as e:
+        return jsonify({"error": f"Failed to save credentials: {str(e)}"}), 500
+
+    # Re-initialize the Plaid client with new credentials
+    plaid_tools._init_client()
+
+    return jsonify({"success": True})
 
 
 @app.route('/api/crypto/sync', methods=['POST'])
@@ -636,6 +760,12 @@ def budgets():
 def vault():
     """Document vault page."""
     return render_template('vault.html')
+
+
+@app.route('/settings')
+def settings():
+    """Settings page."""
+    return render_template('settings.html')
 
 
 # =============================================================================

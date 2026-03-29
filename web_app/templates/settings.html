@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings — Private Financial AI</title>
+    <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+    <style>
+        :root {
+            --bg-primary: #FAF9F7;
+            --bg-secondary: #FFFFFF;
+            --accent: #D97757;
+            --accent-light: #E8A088;
+            --text-primary: #1a1a1a;
+            --text-secondary: #666;
+            --border: #e0e0e0;
+            --success: #2e7d32;
+            --success-bg: #e8f5e9;
+            --error: #c62828;
+            --error-bg: #ffebee;
+            --warning: #e65100;
+            --warning-bg: #fff3e0;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .back-btn {
+            background: none;
+            border: 1px solid var(--border);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .back-btn:hover { background: var(--bg-primary); color: var(--text-primary); }
+
+        .logo { font-size: 1.5rem; font-weight: 600; color: var(--accent); }
+
+        header h1 {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Page layout */
+        .page {
+            flex: 1;
+            max-width: 760px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+            width: 100%;
+        }
+
+        /* Section card */
+        .section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .section-header h2 {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .section-header p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.2rem;
+        }
+
+        .section-body { padding: 1.5rem; }
+
+        /* Form */
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .form-row.single { grid-template-columns: 1fr; }
+
+        .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+
+        .form-group label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            letter-spacing: 0.03em;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 0.65rem 0.9rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .form-group input[type="password"] { letter-spacing: 0.1em; }
+
+        .form-hint {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.2rem;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.65rem 1.25rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            font-family: inherit;
+            transition: opacity 0.15s;
+        }
+
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn:not(:disabled):hover { opacity: 0.85; }
+
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-secondary { background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border); }
+        .btn-danger { background: #fde8e8; color: var(--error); border: 1px solid #f5c6c6; }
+
+        .btn-lg { padding: 0.8rem 1.75rem; font-size: 1rem; }
+
+        .btn-row {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1.25rem;
+            align-items: center;
+        }
+
+        /* Status badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.25rem 0.65rem;
+            border-radius: 99px;
+            font-size: 0.78rem;
+            font-weight: 500;
+        }
+
+        .badge-active { background: var(--success-bg); color: var(--success); }
+        .badge-error { background: var(--error-bg); color: var(--error); }
+        .badge-pending { background: var(--warning-bg); color: var(--warning); }
+        .badge-unconfigured { background: #f5f5f5; color: #888; }
+
+        .dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            display: inline-block;
+        }
+        .dot-active { background: var(--success); }
+        .dot-error { background: var(--error); }
+        .dot-pending { background: var(--warning); }
+        .dot-unconfigured { background: #bbb; }
+
+        /* Connected banks list */
+        .bank-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+        .bank-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--bg-primary);
+        }
+
+        .bank-info { display: flex; align-items: center; gap: 0.9rem; }
+
+        .bank-icon {
+            width: 40px; height: 40px;
+            border-radius: 10px;
+            background: var(--accent);
+            color: white;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 600;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        .bank-name { font-weight: 500; font-size: 0.95rem; }
+        .bank-meta { font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.1rem; }
+
+        .bank-actions { display: flex; align-items: center; gap: 0.75rem; }
+
+        /* Alert / Toast */
+        .alert {
+            padding: 0.8rem 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .alert.show { display: block; }
+        .alert-success { background: var(--success-bg); color: var(--success); }
+        .alert-error { background: var(--error-bg); color: var(--error); }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state .icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.75rem;
+            display: block;
+        }
+
+        .empty-state p { font-size: 0.9rem; }
+
+        /* Credential status row */
+        .cred-status {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+
+        /* Divider */
+        .divider {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 1.25rem 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .form-row { grid-template-columns: 1fr; }
+            .bank-item { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+            .bank-actions { width: 100%; justify-content: flex-end; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <a href="/" class="back-btn">&#8592; Chat</a>
+    <div class="logo">Private Financial AI</div>
+    <h1>Settings</h1>
+</header>
+
+<div class="page">
+
+    <!-- ================================================================
+         SECTION: Plaid Credentials
+    ================================================================ -->
+    <div class="section">
+        <div class="section-header">
+            <div>
+                <h2>Plaid API Credentials</h2>
+                <p>Connect your Plaid developer account to enable bank syncing.</p>
+            </div>
+            <span class="badge badge-unconfigured" id="credBadge">
+                <span class="dot dot-unconfigured"></span> Not configured
+            </span>
+        </div>
+        <div class="section-body">
+
+            <div class="cred-status" id="credStatus" style="display:none">
+                <span>&#128274;</span>
+                <span id="credStatusText"></span>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Client ID</label>
+                    <input type="text" id="plaidClientId" placeholder="your_client_id" autocomplete="off" spellcheck="false">
+                </div>
+                <div class="form-group">
+                    <label>Secret</label>
+                    <input type="password" id="plaidSecret" placeholder="••••••••••••••••" autocomplete="new-password">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Environment</label>
+                    <select id="plaidEnv">
+                        <option value="sandbox">Sandbox (free, test data)</option>
+                        <option value="production">Production (real bank connections)</option>
+                    </select>
+                    <span class="form-hint">Use <strong>Sandbox</strong> to test with fake credentials before connecting real accounts.</span>
+                </div>
+            </div>
+
+            <div id="credAlert" class="alert"></div>
+
+            <div class="btn-row">
+                <button class="btn btn-primary" id="saveCredBtn" onclick="saveCredentials()">Save Credentials</button>
+                <a href="https://dashboard.plaid.com/signup" target="_blank" rel="noopener" class="btn btn-secondary">
+                    Get Plaid API Keys &#8599;
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================
+         SECTION: Connected Banks
+    ================================================================ -->
+    <div class="section">
+        <div class="section-header">
+            <div>
+                <h2>Connected Banks</h2>
+                <p>Manage your linked bank accounts.</p>
+            </div>
+            <button class="btn btn-primary" id="connectBankBtn" onclick="openPlaidLink()" disabled>
+                + Connect Bank
+            </button>
+        </div>
+        <div class="section-body">
+
+            <div id="bankList" class="bank-list">
+                <div class="empty-state">
+                    <span class="icon">&#127968;</span>
+                    <p>No banks connected yet.</p>
+                    <p style="margin-top:0.4rem">Save your Plaid credentials above, then click <strong>Connect Bank</strong>.</p>
+                </div>
+            </div>
+
+            <div id="bankAlert" class="alert"></div>
+
+            <hr class="divider">
+
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.75rem;">
+                <div style="font-size:0.85rem; color:var(--text-secondary)">
+                    Last synced: <span id="lastSynced">never</span>
+                </div>
+                <button class="btn btn-secondary" id="syncBtn" onclick="syncNow()" disabled>
+                    &#8635; Sync Transactions Now
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<script>
+// ============================================================
+// State
+// ============================================================
+let plaidConfigured = false;
+let plaidHandler = null;
+
+// ============================================================
+// Init
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+    loadCredentialStatus();
+    loadBanks();
+});
+
+// ============================================================
+// Credentials
+// ============================================================
+async function loadCredentialStatus() {
+    try {
+        const res = await fetch('/api/settings/plaid-credentials');
+        const data = await res.json();
+
+        if (data.configured) {
+            const hint = data.client_id_hint ? ` · Client ID: ${data.client_id_hint}` : '';
+            const envLabel = { sandbox: 'Sandbox', production: 'Production', development: 'Production' }[data.env] || data.env;
+            showCredStatus(`${envLabel} environment${hint}`);
+            document.getElementById('plaidEnv').value = data.env;
+
+            if (data.client_ready) {
+                plaidConfigured = true;
+                setCredBadge('active', 'Configured');
+                document.getElementById('connectBankBtn').disabled = false;
+                document.getElementById('syncBtn').disabled = false;
+                renderBanks([]); // update empty-state message to "click Connect Bank"
+            } else {
+                setCredBadge('error', 'Init error — restart app');
+            }
+        } else {
+            setCredBadge('unconfigured', 'Not configured');
+        }
+    } catch (e) {
+        console.error('Failed to load credential status', e);
+    }
+}
+
+function setCredBadge(type, label) {
+    const badge = document.getElementById('credBadge');
+    badge.className = `badge badge-${type}`;
+    badge.innerHTML = `<span class="dot dot-${type}"></span> ${label}`;
+}
+
+function showCredStatus(text) {
+    const el = document.getElementById('credStatus');
+    document.getElementById('credStatusText').textContent = text;
+    el.style.display = 'flex';
+}
+
+async function saveCredentials() {
+    const clientId = document.getElementById('plaidClientId').value.trim();
+    const secret = document.getElementById('plaidSecret').value.trim();
+    const env = document.getElementById('plaidEnv').value;
+
+    if (!clientId || !secret) {
+        showAlert('credAlert', 'error', 'Both Client ID and Secret are required.');
+        return;
+    }
+
+    const btn = document.getElementById('saveCredBtn');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+
+    try {
+        const res = await fetch('/api/settings/plaid-credentials', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ client_id: clientId, secret, env })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            showAlert('credAlert', 'success', 'Credentials saved. You can now connect banks.');
+            document.getElementById('plaidClientId').value = '';
+            document.getElementById('plaidSecret').value = '';
+            plaidConfigured = true;
+            await loadCredentialStatus();
+        } else {
+            showAlert('credAlert', 'error', data.error || 'Failed to save credentials.');
+        }
+    } catch (e) {
+        showAlert('credAlert', 'error', 'Network error. Please try again.');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Save Credentials';
+    }
+}
+
+// ============================================================
+// Banks
+// ============================================================
+async function loadBanks() {
+    try {
+        const res = await fetch('/api/plaid/status');
+        const data = await res.json();
+
+        if (data.status === 'not_configured' || !data.items || data.items.length === 0) {
+            return; // Leave empty state visible
+        }
+
+        renderBanks(data.items);
+    } catch (e) {
+        console.error('Failed to load banks', e);
+    }
+}
+
+function renderBanks(items) {
+    const list = document.getElementById('bankList');
+
+    if (!items || items.length === 0) {
+        list.innerHTML = `
+            <div class="empty-state">
+                <span class="icon">&#127968;</span>
+                <p>No banks connected yet.</p>
+                <p style="margin-top:0.4rem">Click <strong>Connect Bank</strong> to add your first account.</p>
+            </div>`;
+        return;
+    }
+
+    list.innerHTML = items.map(item => {
+        const initial = (item.institution || 'B').charAt(0).toUpperCase();
+        const status = item.status || 'active';
+        const badgeClass = status === 'active' ? 'badge-active' :
+                           status === 'error' ? 'badge-error' : 'badge-pending';
+        const dotClass = status === 'active' ? 'dot-active' :
+                         status === 'error' ? 'dot-error' : 'dot-pending';
+        const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
+
+        const updated = item.last_updated
+            ? new Date(item.last_updated).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+            : 'Never synced';
+
+        return `
+            <div class="bank-item" id="bank-${item.item_id}">
+                <div class="bank-info">
+                    <div class="bank-icon">${initial}</div>
+                    <div>
+                        <div class="bank-name">${escapeHtml(item.institution || 'Unknown Bank')}</div>
+                        <div class="bank-meta">Last synced: ${updated}</div>
+                    </div>
+                </div>
+                <div class="bank-actions">
+                    <span class="badge ${badgeClass}">
+                        <span class="dot ${dotClass}"></span> ${statusLabel}
+                    </span>
+                    <button class="btn btn-danger" onclick="disconnectBank('${item.item_id}', '${escapeHtml(item.institution || 'this bank')}')">
+                        Disconnect
+                    </button>
+                </div>
+            </div>`;
+    }).join('');
+}
+
+// ============================================================
+// Plaid Link
+// ============================================================
+async function openPlaidLink() {
+    if (!plaidConfigured) {
+        showAlert('bankAlert', 'error', 'Save your Plaid credentials first.');
+        return;
+    }
+
+    const btn = document.getElementById('connectBankBtn');
+    btn.disabled = true;
+    btn.textContent = 'Loading…';
+
+    try {
+        const res = await fetch('/api/plaid/create-link-token', { method: 'POST' });
+        const data = await res.json();
+
+        if (data.error) {
+            showAlert('bankAlert', 'error', data.error);
+            return;
+        }
+
+        plaidHandler = Plaid.create({
+            token: data.link_token,
+            onSuccess: async (publicToken, metadata) => {
+                await exchangeToken(publicToken, metadata);
+            },
+            onExit: (err) => {
+                if (err) {
+                    showAlert('bankAlert', 'error', `Plaid Link exited: ${err.display_message || err.error_message || 'Unknown error'}`);
+                }
+            }
+        });
+
+        plaidHandler.open();
+
+    } catch (e) {
+        showAlert('bankAlert', 'error', 'Failed to open Plaid Link. Check your credentials and try again.');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '+ Connect Bank';
+    }
+}
+
+async function exchangeToken(publicToken, metadata) {
+    showAlert('bankAlert', 'success', `Linking ${metadata?.institution?.name || 'bank'}…`);
+
+    try {
+        const res = await fetch('/api/plaid/exchange-token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ public_token: publicToken, metadata })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            showAlert('bankAlert', 'success', `${data.institution_name || 'Bank'} connected successfully! Syncing transactions…`);
+            await syncNow();
+            await loadBanks();
+        } else {
+            showAlert('bankAlert', 'error', data.error || 'Failed to link bank.');
+        }
+    } catch (e) {
+        showAlert('bankAlert', 'error', 'Failed to complete bank connection.');
+    }
+}
+
+// ============================================================
+// Disconnect bank
+// ============================================================
+async function disconnectBank(itemId, name) {
+    if (!confirm(`Disconnect ${name}? Transaction history will remain, but syncing will stop.`)) return;
+
+    try {
+        const res = await fetch(`/api/plaid/items/${itemId}`, { method: 'DELETE' });
+        const data = await res.json();
+
+        if (data.success) {
+            const el = document.getElementById(`bank-${itemId}`);
+            if (el) el.remove();
+            showAlert('bankAlert', 'success', `${name} disconnected.`);
+            await loadBanks(); // Re-render (might show empty state)
+        } else {
+            showAlert('bankAlert', 'error', data.error || 'Failed to disconnect.');
+        }
+    } catch (e) {
+        showAlert('bankAlert', 'error', 'Network error. Please try again.');
+    }
+}
+
+// ============================================================
+// Sync
+// ============================================================
+async function syncNow() {
+    const btn = document.getElementById('syncBtn');
+    btn.disabled = true;
+    btn.textContent = '⟳ Syncing…';
+
+    try {
+        const res = await fetch('/api/plaid/sync', { method: 'POST' });
+        const data = await res.json();
+
+        if (data.success) {
+            const count = data.new_transactions || 0;
+            showAlert('bankAlert', 'success', `Sync complete. ${count} new transaction${count !== 1 ? 's' : ''} imported.`);
+            document.getElementById('lastSynced').textContent = new Date().toLocaleTimeString();
+            await loadBanks();
+        } else {
+            showAlert('bankAlert', 'error', data.error || 'Sync failed.');
+        }
+    } catch (e) {
+        showAlert('bankAlert', 'error', 'Sync failed. Check your connection and try again.');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '⟳ Sync Transactions Now';
+    }
+}
+
+// ============================================================
+// Helpers
+// ============================================================
+function showAlert(id, type, message) {
+    const el = document.getElementById(id);
+    el.className = `alert alert-${type} show`;
+    el.textContent = message;
+    setTimeout(() => { el.className = `alert alert-${type}`; }, 6000);
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = String(text);
+    return div.innerHTML;
+}
+</script>
+</body>
+</html>

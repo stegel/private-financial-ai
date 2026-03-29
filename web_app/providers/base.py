@@ -115,3 +115,14 @@ class LLMProvider(ABC):
             "tool_call_id": tool_call_id,
             "content": content
         }
+
+    def format_assistant_message(self, response: 'LLMResponse') -> Dict:
+        """
+        Format the assistant turn (including tool calls) for the next request.
+        Override in providers that use a different message format.
+        """
+        return {
+            "role": "assistant",
+            "content": response.content,
+            "tool_calls": response.tool_calls
+        }

@@ -13,9 +13,9 @@ class AnthropicProvider(LLMProvider):
 
     # Pricing per million tokens (as of 2025)
     PRICING = {
-        "claude-haiku-4-5-20250514": {"input": 1.0, "output": 5.0},
-        "claude-sonnet-4-20250514": {"input": 3.0, "output": 15.0},
-        "claude-opus-4-20250514": {"input": 15.0, "output": 75.0},
+        "claude-haiku-4-5-20251001": {"input": 1.0, "output": 5.0},
+        "claude-sonnet-4-6": {"input": 3.0, "output": 15.0},
+        "claude-opus-4-6": {"input": 15.0, "output": 75.0},
         # Aliases
         "haiku": {"input": 1.0, "output": 5.0},
         "sonnet": {"input": 3.0, "output": 15.0},
@@ -24,9 +24,9 @@ class AnthropicProvider(LLMProvider):
 
     # Model tiers
     DEFAULT_MODELS = {
-        "simple": "claude-haiku-4-5-20250514",
-        "moderate": "claude-sonnet-4-20250514",
-        "complex": "claude-sonnet-4-20250514",  # Use Opus if enabled
+        "simple": "claude-haiku-4-5-20251001",
+        "moderate": "claude-sonnet-4-6",
+        "complex": "claude-sonnet-4-6",
     }
 
     def __init__(self, api_key: Optional[str] = None, config: Optional[Dict] = None):
@@ -205,6 +205,13 @@ class AnthropicProvider(LLMProvider):
                             }
                     elif event.type == 'message_stop':
                         yield {"type": "done"}
+
+    def format_assistant_message(self, response) -> Dict:
+        """Use raw Anthropic content blocks (text + tool_use) for the assistant turn."""
+        return {
+            "role": "assistant",
+            "content": response.raw_response.content
+        }
 
     def format_tool_result(self, tool_call_id: str, result: Any) -> Dict:
         """Format tool result for Anthropic."""

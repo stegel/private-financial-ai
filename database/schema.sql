@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS plaid_items (
     error_code TEXT,
     error_message TEXT,
     consent_expiration_time TIMESTAMP,
+    sync_cursor TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
